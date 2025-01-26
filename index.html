@@ -4,19 +4,11 @@
   <meta charset="UTF-8" />
   <title>Calcul Droits CPF</title>
   <style>
-    /* CSS de base */
-    * {
-      box-sizing: border-box;
-    }
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
+      margin: 20px;
       background: #f9f9f9;
-      color: #333;
     }
-
-    /* Conteneur principal pour centrer le contenu */
     .container {
       max-width: 800px;
       margin: 0 auto;
@@ -25,137 +17,115 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       border-radius: 8px;
       margin-top: 30px;
-      margin-bottom: 30px;
     }
-
     h1 {
       text-align: center;
-      margin-bottom: 1rem;
       color: #004080;
     }
-
-    .section {
-      margin-bottom: 1rem;
-    }
-
     label {
       font-weight: bold;
-      display: inline-block;
       margin-bottom: 5px;
+      display: inline-block;
     }
-
     input[type="text"],
     input[type="number"],
     input[type="email"] {
       width: 100%;
       padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
       margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
     }
-
-    .checkbox-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
+    .section {
+      margin-bottom: 1rem;
     }
-
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-
-    .checkbox-item input {
-      margin-right: 5px;
-    }
-
     .btn {
-      display: inline-block;
       background: #004080;
       color: #fff;
       padding: 10px 20px;
       margin-right: 10px;
-      margin-bottom: 1rem;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      text-decoration: none;
       font-size: 16px;
     }
     .btn:hover {
       background: #0066cc;
     }
-
+    .checkbox-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+    }
+    .checkbox-item input {
+      margin-right: 5px;
+    }
     table {
-      border-collapse: collapse;
       width: 100%;
+      border-collapse: collapse;
       margin-top: 1rem;
     }
-
     th, td {
       border: 1px solid #ccc;
       padding: 10px;
-      text-align: left;
     }
-
     th {
-      background-color: #f0f0f0;
+      background: #f0f0f0;
     }
-
-    .footer-note {
-      text-align: center;
+    #lastResult {
+      background: #e6f7ff;
+      border: 1px solid #99d6ff;
+      padding: 10px;
       margin-top: 20px;
-      font-size: 0.9rem;
-      color: #666;
+      border-radius: 4px;
+      color: #004080;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
   <div class="container">
     <h1>Calculateur de Droits CPF</h1>
 
+    <!-- FORMULAIRE -->
     <div class="section">
       <label for="statut">Statut (salarié/indépendant) :</label>
-      <input type="text" id="statut" placeholder="Ex: salarié" value="salarié" />
+      <input type="text" id="statut" value="salarié" />
     </div>
-
     <div class="section">
       <label for="annees">Nombre d'années de travail :</label>
-      <input type="number" id="annees" placeholder="Ex: 10" value="10" />
+      <input type="number" id="annees" value="10" />
     </div>
-
     <div class="section">
       <label for="heures">Heures travaillées par an :</label>
-      <input type="number" id="heures" placeholder="Ex: 800" value="800" />
+      <input type="number" id="heures" value="800" />
     </div>
-
     <div class="section">
       <label for="prenom">Prénom :</label>
       <input type="text" id="prenom" placeholder="Ex: Jean" />
     </div>
-
     <div class="section">
       <label for="nom">Nom :</label>
       <input type="text" id="nom" placeholder="Ex: Dupont" />
     </div>
-
     <div class="section">
       <label for="email">Email :</label>
-      <input type="email" id="email" placeholder="Ex: jean.dupont@email.com" />
+      <input type="email" id="email" placeholder="Ex: jean.dupont@mail.com" />
     </div>
-
     <div class="section">
       <label for="telephone">Téléphone :</label>
       <input type="text" id="telephone" placeholder="Ex: 06 12 34 56 78" />
     </div>
-
     <div class="section">
       <label for="nss">N° Sécurité Sociale :</label>
       <input type="text" id="nss" placeholder="Ex: 1 93 08 ..." />
     </div>
 
+    <!-- CHECKBOXES -->
     <div class="section">
       <p><b>Options :</b></p>
       <div class="checkbox-list">
@@ -194,9 +164,11 @@
       </div>
     </div>
 
+    <!-- BOUTONS -->
     <button class="btn" onclick="ajouterClient()">Ajouter ce client</button>
     <button class="btn" onclick="exporterCSV()">Exporter en CSV</button>
 
+    <!-- TABLEAU DES CLIENTS -->
     <table id="tableClients">
       <thead>
         <tr>
@@ -211,14 +183,14 @@
       </thead>
       <tbody></tbody>
     </table>
-  </div>
 
-  <div class="footer-note">
-    <p>&copy; 2023 - Calculateur CPF - Version Web</p>
+    <!-- MESSAGE RESULTAT DU DERNIER CALCUL -->
+    <div id="lastResult" style="display: none;"></div>
+
   </div>
 
 <script>
-  let clients = [];  // Contiendra la liste des clients ajoutés
+  let clients = [];  // Contiendra la liste des clients
 
   function ajouterClient() {
     // Récupération des champs
@@ -235,5 +207,141 @@
     const est_handicape = document.getElementById('handicape').checked;
     const est_non_qualifie = document.getElementById('non_qualifie').checked;
     const est_victime_atmp = document.getElementById('atmp').checked;
-    const est_pension_in
+    const est_pension_inval = document.getElementById('pension_inval').checked;
+    const est_pension_militaire = document.getElementById('pension_militaire').checked;
+    const est_pension_spv = document.getElementById('spv').checked;
+    const est_carte_mobilite = document.getElementById('carte_mobilite').checked;
+    const est_aah = document.getElementById('aah').checked;
+
+    // Logique de calcul
+    let montant_base_annuel = 500;
+    let plafond_cpf = 5000;
+
+    if (statut === 'salarié') {
+      if (
+        est_handicape || est_non_qualifie || est_victime_atmp ||
+        est_pension_inval || est_pension_militaire || est_pension_spv ||
+        est_carte_mobilite || est_aah
+      ) {
+        montant_base_annuel = 800;
+        plafond_cpf = 8000;
+      }
+
+      if (heures < 1607 / 2) {
+        const pourcentage_activite = heures / 1607;
+        var droits_annuels = montant_base_annuel * pourcentage_activite;
+      } else {
+        var droits_annuels = montant_base_annuel;
+      }
+    }
+    else if (statut === 'indépendant') {
+      if (heures >= 1607 / 2) {
+        const pourcentage_activite = heures / 1607;
+        var droits_annuels = montant_base_annuel * pourcentage_activite;
+      } else {
+        const pourcentage_activite = heures / 1607;
+        var droits_annuels = montant_base_annuel * pourcentage_activite;
+      }
+      // Arrondi au centime supérieur
+      droits_annuels = Math.ceil(droits_annuels * 100) / 100;
+    }
+    else {
+      var droits_annuels = 0;
+    }
+
+    let droits_totaux = droits_annuels * annees;
+    if (droits_totaux > plafond_cpf) {
+      droits_totaux = plafond_cpf;
+    }
+    droits_totaux = Math.round(droits_totaux * 100) / 100;
+
+    // Construction de l'objet client
+    const client = {
+      'Statut': statut,
+      'Années': annees,
+      'Heures Travail': heures,
+      'Handicapé': est_handicape,
+      'Non Qualifié': est_non_qualifie,
+      'ATMP': est_victime_atmp,
+      'Pension Invalidité': est_pension_inval,
+      'Pension Militaire': est_pension_militaire,
+      'SPV': est_pension_spv,
+      'Carte Mobilité': est_carte_mobilite,
+      'AAH': est_aah,
+      'Droits Totaux': droits_totaux,
+      'Prénom': prenom,
+      'Nom': nom,
+      'Email': email,
+      'Téléphone': telephone,
+      'N° Sécu': nss
+    };
+
+    // On ajoute ce client dans la liste
+    clients.push(client);
+
+    // Actualiser l'affichage (table + message)
+    afficherTable();
+    afficherDernierResultat(droits_totaux);
+  }
+
+  function afficherTable() {
+    const tbody = document.querySelector('#tableClients tbody');
+    tbody.innerHTML = '';
+
+    clients.forEach((c, i) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${c['Prénom']}</td>
+        <td>${c['Nom']}</td>
+        <td>${c['Statut']}</td>
+        <td>${c['Années']}</td>
+        <td>${c['Heures Travail']}</td>
+        <td>${c['Droits Totaux']}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function afficherDernierResultat(droitsTotaux) {
+    const lastResult = document.getElementById('lastResult');
+    lastResult.style.display = 'block'; // on l'affiche si caché
+    lastResult.textContent = `Dernier calcul : ${droitsTotaux} €`;
+  }
+
+  function exporterCSV() {
+    const colonnes = [
+      'Prénom','Nom','Email','Téléphone','N° Sécu',
+      'Statut','Années','Heures Travail',
+      'Handicapé','Non Qualifié','ATMP','Pension Invalidité',
+      'Pension Militaire','SPV','Carte Mobilité','AAH','Droits Totaux'
+    ];
+    let csvContent = colonnes.join(';') + '\\n';
+
+    clients.forEach(client => {
+      const row = colonnes.map(col => {
+        const val = client[col];
+        if (typeof val === 'boolean') {
+          return val ? 'oui' : 'non';
+        } else {
+          return (val !== undefined) ? String(val) : '';
+        }
+      }).join(';');
+      csvContent += row + '\\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'resultats_commerciaux.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+</body>
+</html>
+
 
