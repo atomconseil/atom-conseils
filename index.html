@@ -17,6 +17,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       border-radius: 8px;
       margin-top: 30px;
+      margin-bottom: 30px;
     }
     h1 {
       text-align: center;
@@ -24,15 +25,15 @@
     }
     label {
       font-weight: bold;
-      margin-bottom: 5px;
-      display: inline-block;
+      display: block;
+      margin-top: 8px;
     }
     input[type="text"],
     input[type="number"],
     input[type="email"] {
       width: 100%;
       padding: 8px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       border-radius: 4px;
       border: 1px solid #ccc;
     }
@@ -48,6 +49,7 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 16px;
+      margin-top: 10px;
     }
     .btn:hover {
       background: #0066cc;
@@ -55,7 +57,8 @@
     .checkbox-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
+      gap: 15px;
+      margin-top: 10px;
     }
     .checkbox-item {
       display: flex;
@@ -84,6 +87,15 @@
       border-radius: 4px;
       color: #004080;
       font-weight: bold;
+      display: none; /* caché par défaut */
+    }
+    .historique-section {
+      margin-top: 30px;
+      border-top: 2px solid #ccc;
+      padding-top: 20px;
+    }
+    .historique-section h2 {
+      color: #004080;
     }
   </style>
 </head>
@@ -96,30 +108,37 @@
       <label for="statut">Statut (salarié/indépendant) :</label>
       <input type="text" id="statut" value="salarié" />
     </div>
+
     <div class="section">
       <label for="annees">Nombre d'années de travail :</label>
       <input type="number" id="annees" value="10" />
     </div>
+
     <div class="section">
       <label for="heures">Heures travaillées par an :</label>
       <input type="number" id="heures" value="800" />
     </div>
+
     <div class="section">
       <label for="prenom">Prénom :</label>
       <input type="text" id="prenom" placeholder="Ex: Jean" />
     </div>
+
     <div class="section">
       <label for="nom">Nom :</label>
       <input type="text" id="nom" placeholder="Ex: Dupont" />
     </div>
+
     <div class="section">
       <label for="email">Email :</label>
       <input type="email" id="email" placeholder="Ex: jean.dupont@mail.com" />
     </div>
+
     <div class="section">
       <label for="telephone">Téléphone :</label>
       <input type="text" id="telephone" placeholder="Ex: 06 12 34 56 78" />
     </div>
+
     <div class="section">
       <label for="nss">N° Sécurité Sociale :</label>
       <input type="text" id="nss" placeholder="Ex: 1 93 08 ..." />
@@ -127,7 +146,7 @@
 
     <!-- CHECKBOXES -->
     <div class="section">
-      <p><b>Options :</b></p>
+      <label><b>Options :</b></label>
       <div class="checkbox-list">
         <div class="checkbox-item">
           <input type="checkbox" id="handicape"/>
@@ -167,8 +186,12 @@
     <!-- BOUTONS -->
     <button class="btn" onclick="ajouterClient()">Ajouter ce client</button>
     <button class="btn" onclick="exporterCSV()">Exporter en CSV</button>
+    <!-- Nouveau bouton : export prospects > 500 € -->
+    <button class="btn" id="btnExportSup500" style="display:none;" onclick="exporterSup500()">
+      Exporter prospects > 500€
+    </button>
 
-    <!-- TABLEAU DES CLIENTS -->
+    <!-- TABLEAU DES CLIENTS (TOUS) -->
     <table id="tableClients">
       <thead>
         <tr>
@@ -185,12 +208,31 @@
     </table>
 
     <!-- MESSAGE RESULTAT DU DERNIER CALCUL -->
-    <div id="lastResult" style="display: none;"></div>
+    <div id="lastResult"></div>
+
+    <!-- SECTION HISTORIQUE (DERNIERS 20) -->
+    <div class="historique-section">
+      <h2>Historique (20 dernières saisies)</h2>
+      <table id="tableHistorique">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Prénom</th>
+            <th>Nom</th>
+            <th>Statut</th>
+            <th>Années</th>
+            <th>Heures</th>
+            <th>Droits Totaux</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
   </div>
 
 <script>
-  let clients = [];  // Contiendra la liste des clients
+  let clients = [];  // Contiendra la liste de tous les clients
 
   function ajouterClient() {
     // Récupération des champs
@@ -279,12 +321,19 @@
     // On ajoute ce client dans la liste
     clients.push(client);
 
-    // Actualiser l'affichage (table + message)
-    afficherTable();
+    // Actualiser l'affichage
+    afficherTableComplete();
     afficherDernierResultat(droits_totaux);
+    afficherHistorique();
+
+    // Si on a un client à plus de 500 €, on affiche le bouton "Exporter prospects > 500€"
+    if (droits_totaux > 500) {
+      document.getElementById('btnExportSup500').style.display = 'inline-block';
+    }
   }
 
-  function afficherTable() {
+  // Affiche la table de TOUS les clients
+  function afficherTableComplete() {
     const tbody = document.querySelector('#tableClients tbody');
     tbody.innerHTML = '';
 
@@ -303,12 +352,37 @@
     });
   }
 
+  // Affiche seulement les 20 DERNIERS clients dans la section Historique
+  function afficherHistorique() {
+    const tbhist = document.querySelector('#tableHistorique tbody');
+    tbhist.innerHTML = '';
+
+    // On récupère les 20 dernières entrées (slice(-20))
+    const last20 = clients.slice(-20);
+
+    last20.forEach((c, i) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${c['Prénom']}</td>
+        <td>${c['Nom']}</td>
+        <td>${c['Statut']}</td>
+        <td>${c['Années']}</td>
+        <td>${c['Heures Travail']}</td>
+        <td>${c['Droits Totaux']}</td>
+      `;
+      tbhist.appendChild(row);
+    });
+  }
+
+  // Afficher le dernier résultat calculé
   function afficherDernierResultat(droitsTotaux) {
     const lastResult = document.getElementById('lastResult');
-    lastResult.style.display = 'block'; // on l'affiche si caché
+    lastResult.style.display = 'block';
     lastResult.textContent = `Dernier calcul : ${droitsTotaux} €`;
   }
 
+  // Export CSV (TOUS)
   function exporterCSV() {
     const colonnes = [
       'Prénom','Nom','Email','Téléphone','N° Sécu',
@@ -340,8 +414,45 @@
     link.click();
     document.body.removeChild(link);
   }
+
+  // Export CSV (uniquement prospects > 500€)
+  function exporterSup500() {
+    // On filtre les clients dont les droits dépassent 500€
+    const superieurs = clients.filter(c => c['Droits Totaux'] > 500);
+
+    const colonnes = [
+      'Prénom','Nom','Email','Téléphone','N° Sécu',
+      'Statut','Années','Heures Travail',
+      'Handicapé','Non Qualifié','ATMP','Pension Invalidité',
+      'Pension Militaire','SPV','Carte Mobilité','AAH','Droits Totaux'
+    ];
+    let csvContent = colonnes.join(';') + '\\n';
+
+    superieurs.forEach(client => {
+      const row = colonnes.map(col => {
+        const val = client[col];
+        if (typeof val === 'boolean') {
+          return val ? 'oui' : 'non';
+        } else {
+          return (val !== undefined) ? String(val) : '';
+        }
+      }).join(';');
+      csvContent += row + '\\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'prospects_sup_500.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 </script>
 </body>
 </html>
+
 
 
