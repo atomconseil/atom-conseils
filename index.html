@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -101,8 +101,6 @@
 
   <!-- jsPDF (pour créer des PDF côté client) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- Plugin autoTable (pour générer facilement un tableau dans le PDF) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -149,6 +147,12 @@
       <input type="text" id="nss" placeholder="Ex: 1 93 08 ..." />
     </div>
 
+    <!-- NOUVEAU : champ pour le Prénom du prospecteur -->
+    <div class="section">
+      <label for="prospecteur">Prénom du prospecteur :</label>
+      <input type="text" id="prospecteur" placeholder="Ex: Sophie" />
+    </div>
+
     <!-- CHECKBOXES -->
     <div class="section">
       <label><b>Options :</b></label>
@@ -188,17 +192,9 @@
       </div>
     </div>
 
-    <!-- BOUTONS -->
     <button class="btn" onclick="ajouterClient()">Ajouter ce client</button>
-    <button class="btn" onclick="exporterCSV()">Exporter en CSV (tous)</button>
-    <button class="btn" id="btnExportSup500" style="display:none;" onclick="exporterSup500()">
-      Exporter prospects > 500€ (CSV)
-    </button>
-    <button class="btn" id="btnExportSup500PDF" style="display:none;" onclick="exporterSup500PDF()">
-      Exporter prospects > 500€ (PDF)
-    </button>
+    <button class="btn" onclick="exporterSup500PDF()">Exporter en PDF (Prospects > 500€)</button>
 
-    <!-- TABLEAU DES CLIENTS (TOUS) -->
     <table id="tableClients">
       <thead>
         <tr>
@@ -214,10 +210,8 @@
       <tbody></tbody>
     </table>
 
-    <!-- MESSAGE RESULTAT DU DERNIER CALCUL -->
     <div id="lastResult"></div>
 
-    <!-- SECTION HISTORIQUE (DERNIERS 20) -->
     <div class="historique-section">
       <h2>Historique (20 dernières saisies)</h2>
       <table id="tableHistorique">
@@ -239,10 +233,11 @@
   </div>
 
 <script>
-  let clients = [];  // Contiendra la liste de tous les clients
+  const { jsPDF } = window.jspdf; // On récupère jsPDF (fourni par le script CDN)
+  let clients = [];
 
   function ajouterClient() {
-    // Récupération des champs
+    // Récupérer les champs
     const statut = document.getElementById('statut').value.trim().toLowerCase();
     const annees = parseInt(document.getElementById('annees').value, 10) || 0;
     const heures = parseFloat(document.getElementById('heures').value) || 0;
@@ -253,23 +248,25 @@
     const telephone = document.getElementById('telephone').value.trim();
     const nss = document.getElementById('nss').value.trim();
 
+    const prospecteur = document.getElementById('prospecteur').value.trim();
+
     const est_handicape = document.getElementById('handicape').checked;
     const est_non_qualifie = document.getElementById('non_qualifie').checked;
     const est_victime_atmp = document.getElementById('atmp').checked;
     const est_pension_inval = document.getElementById('pension_inval').checked;
     const est_pension_militaire = document.getElementById('pension_militaire').checked;
-    const est_pension_spv = document.getElementById('spv').checked;
+    const est_spv = document.getElementById('spv').checked;
     const est_carte_mobilite = document.getElementById('carte_mobilite').checked;
     const est_aah = document.getElementById('aah').checked;
 
-    // Logique de calcul
+    // Calcul droits
     let montant_base_annuel = 500;
     let plafond_cpf = 5000;
 
     if (statut === 'salarié') {
       if (
         est_handicape || est_non_qualifie || est_victime_atmp ||
-        est_pension_inval || est_pension_militaire || est_pension_spv ||
+        est_pension_inval || est_pension_militaire || est_spv ||
         est_carte_mobilite || est_aah
       ) {
         montant_base_annuel = 800;
@@ -291,7 +288,7 @@
         const pourcentage_activite = heures / 1607;
         var droits_annuels = montant_base_annuel * pourcentage_activite;
       }
-      droits_annuels = Math.ceil(droits_annuels * 100) / 100; // Arrondi au centime supérieur
+      droits_annuels = Math.ceil(droits_annuels * 100) / 100;
     }
     else {
       var droits_annuels = 0;
@@ -303,7 +300,7 @@
     }
     droits_totaux = Math.round(droits_totaux * 100) / 100;
 
-    // Objet client
+    // On crée l'objet client
     const client = {
       'Statut': statut,
       'Années': annees,
@@ -313,7 +310,7 @@
       'ATMP': est_victime_atmp,
       'Pension Invalidité': est_pension_inval,
       'Pension Militaire': est_pension_militaire,
-      'SPV': est_pension_spv,
+      'SPV': est_spv,
       'Carte Mobilité': est_carte_mobilite,
       'AAH': est_aah,
       'Droits Totaux': droits_totaux,
@@ -321,21 +318,17 @@
       'Nom': nom,
       'Email': email,
       'Téléphone': telephone,
-      'N° Sécu': nss
+      'N° Sécu': nss,
+      'Prospecteur': prospecteur
     };
 
+    // Ajout dans la liste
     clients.push(client);
 
-    // Mise à jour de l'affichage
+    // Mise à jour de l'interface
     afficherTableComplete();
     afficherDernierResultat(droits_totaux);
     afficherHistorique();
-
-    // Si on a un client à plus de 500 €, on affiche les boutons d'export prospects > 500€
-    if (droits_totaux > 500) {
-      document.getElementById('btnExportSup500').style.display = 'inline-block';
-      document.getElementById('btnExportSup500PDF').style.display = 'inline-block';
-    }
   }
 
   function afficherTableComplete() {
@@ -363,7 +356,6 @@
 
     // 20 dernières entrées
     const last20 = clients.slice(-20);
-
     last20.forEach((c, i) => {
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -385,111 +377,42 @@
     lastResult.textContent = `Dernier calcul : ${droitsTotaux} €`;
   }
 
-  function exporterCSV() {
-    const colonnes = [
-      'Prénom','Nom','Email','Téléphone','N° Sécu',
-      'Statut','Années','Heures Travail',
-      'Handicapé','Non Qualifié','ATMP','Pension Invalidité',
-      'Pension Militaire','SPV','Carte Mobilité','AAH','Droits Totaux'
-    ];
-    let csvContent = colonnes.join(';') + '\\n';
-
-    clients.forEach(client => {
-      const row = colonnes.map(col => {
-        const val = client[col];
-        if (typeof val === 'boolean') {
-          return val ? 'oui' : 'non';
-        } else {
-          return (val !== undefined) ? String(val) : '';
-        }
-      }).join(';');
-      csvContent += row + '\\n';
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'resultats_commerciaux.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  function exporterSup500() {
-    // Filtre
-    const superieurs = clients.filter(c => c['Droits Totaux'] > 500);
-    if (superieurs.length === 0) {
-      alert("Aucun client avec plus de 500 € de droits.");
-      return;
-    }
-
-    const colonnes = [
-      'Prénom','Nom','Email','Téléphone','N° Sécu',
-      'Statut','Années','Heures Travail',
-      'Handicapé','Non Qualifié','ATMP','Pension Invalidité',
-      'Pension Militaire','SPV','Carte Mobilité','AAH','Droits Totaux'
-    ];
-    let csvContent = colonnes.join(';') + '\\n';
-
-    superieurs.forEach(client => {
-      const row = colonnes.map(col => {
-        const val = client[col];
-        if (typeof val === 'boolean') {
-          return val ? 'oui' : 'non';
-        } else {
-          return (val !== undefined) ? String(val) : '';
-        }
-      }).join(';');
-      csvContent += row + '\\n';
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'prospects_sup_500.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  // Exporter un PDF (prospects > 500€) avec jsPDF + autoTable
+  // Fonction principale : PDF pour prospects > 500€
   function exporterSup500PDF() {
+    // On récupère les clients > 500€
     const superieurs = clients.filter(c => c['Droits Totaux'] > 500);
     if (superieurs.length === 0) {
       alert("Aucun client avec plus de 500 € de droits.");
       return;
     }
 
-    // Récupérer jsPDF depuis la variable globale (CDN)
-    const { jsPDF } = window.jspdf;
+    // On crée le PDF
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
 
-    doc.setFontSize(14);
-    doc.text("Prospects > 500€ - Rapport", 40, 40);
+    // Pour chaque client, on crée une page distincte
+    superieurs.forEach((c, index) => {
+      if (index > 0) doc.addPage(); // On ajoute une page pour chaque client après le premier
 
-    // Choix des colonnes pour le PDF
-    const columns = [
-      { header: "Prénom", dataKey: "Prénom" },
-      { header: "Nom", dataKey: "Nom" },
-      { header: "Droits Totaux", dataKey: "Droits Totaux" },
-      { header: "Email", dataKey: "Email" },
-      { header: "Téléphone", dataKey: "Téléphone" }
-    ];
+      doc.setFontSize(14);
 
-    // autoTable (depuis le plugin)
-    doc.autoTable({
-      startY: 60,
-      head: [ columns.map(col => col.header) ], 
-      body: superieurs.map(client => columns.map(col => client[col.dataKey] ?? "")),
-      margin: { left: 40, right: 40 },
-      styles: { fontSize: 10, cellPadding: 6 },
-      headStyles: { fillColor: [0, 102, 204], textColor: 255 }, // Bleu foncé
+      let y = 60; // Position verticale de départ
+
+      doc.text(`Prénom : ${c['Prénom']}`, 40, y); 
+      y += 20; 
+      doc.text(`Nom : ${c['Nom']}`, 40, y);
+      y += 20;
+      doc.text(`Numéro de téléphone : ${c['Téléphone']}`, 40, y);
+      y += 20;
+      doc.text(`Mail : ${c['Email']}`, 40, y);
+      y += 20;
+      doc.text(`N° Sécurité Sociale : ${c['N° Sécu']}`, 40, y);
+      y += 20;
+      doc.text(`Prénom du prospecteur : ${c['Prospecteur']}`, 40, y);
+      y += 20;
+      doc.text(`Nombre de droits : ${c['Droits Totaux']}`, 40, y);
     });
 
+    // On enregistre
     doc.save("prospects_sup_500.pdf");
   }
 </script>
