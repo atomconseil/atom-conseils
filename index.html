@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Calcul Droits CPF</title>
   <style>
-    /* Styles généraux pour la page */
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
@@ -31,7 +30,8 @@
     }
     input[type="text"],
     input[type="number"],
-    input[type="email"] {
+    input[type="email"],
+    select {
       width: 100%;
       padding: 8px;
       margin-bottom: 8px;
@@ -54,19 +54,6 @@
     }
     .btn:hover {
       background: #0066cc;
-    }
-    .checkbox-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-top: 10px;
-    }
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-    }
-    .checkbox-item input {
-      margin-right: 5px;
     }
     table {
       width: 100%;
@@ -98,6 +85,19 @@
     .historique-section h2 {
       color: #004080;
     }
+    .checkbox-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+    }
+    .checkbox-item input {
+      margin-right: 5px;
+    }
   </style>
 
   <!-- jsPDF (pour créer le PDF côté client) -->
@@ -109,33 +109,43 @@
 
     <!-- FORMULAIRE -->
     <div class="section">
-      <label for="statut">Statut (salarié/indépendant) :</label>
-      <input type="text" id="statut" value="salarié" />
+      <label for="statut">Statut :</label>
+      <select id="statut">
+        <option value="salarié">Salarié</option>
+        <option value="indépendant">Indépendant</option>
+      </select>
     </div>
+    
     <div class="section">
       <label for="annees">Nombre d'années de travail :</label>
       <input type="number" id="annees" value="10" />
     </div>
+
     <div class="section">
       <label for="heures">Heures travaillées par an :</label>
       <input type="number" id="heures" value="800" />
     </div>
+
     <div class="section">
       <label for="prenom">Prénom :</label>
       <input type="text" id="prenom" placeholder="Ex: Jean" />
     </div>
+
     <div class="section">
       <label for="nom">Nom :</label>
       <input type="text" id="nom" placeholder="Ex: Dupont" />
     </div>
+
     <div class="section">
       <label for="email">Email :</label>
       <input type="email" id="email" placeholder="Ex: jean.dupont@mail.com" />
     </div>
+
     <div class="section">
       <label for="telephone">Téléphone :</label>
       <input type="text" id="telephone" placeholder="Ex: 06 12 34 56 78" />
     </div>
+
     <div class="section">
       <label for="nss">N° Sécurité Sociale :</label>
       <input type="text" id="nss" placeholder="Ex: 1 93 08 ..." />
@@ -147,7 +157,7 @@
       <input type="text" id="prospecteur" placeholder="Ex: Sophie" />
     </div>
 
-    <!-- CASES A COCHER -->
+    <!-- CHECKBOXES -->
     <div class="section">
       <label><b>Options :</b></label>
       <div class="checkbox-list">
@@ -186,11 +196,9 @@
       </div>
     </div>
 
-    <!-- BOUTONS -->
     <button class="btn" onclick="ajouterClient()">Ajouter ce client</button>
     <button class="btn" onclick="exporterSup500PDF()">Exporter en PDF (Prospects > 500€)</button>
 
-    <!-- TABLEAU GLOBAL -->
     <table id="tableClients">
       <thead>
         <tr>
@@ -206,10 +214,8 @@
       <tbody></tbody>
     </table>
 
-    <!-- ZONE D'AFFICHAGE DERNIER RESULTAT -->
     <div id="lastResult"></div>
 
-    <!-- HISTORIQUE 20 DERNIERES SAISIES -->
     <div class="historique-section">
       <h2>Historique (20 dernières saisies)</h2>
       <table id="tableHistorique">
@@ -231,10 +237,9 @@
   </div>
 
 <script>
-  // On récupère l'objet jsPDF depuis window.jspdf
+  // On récupère jsPDF depuis la variable globale
   const { jsPDF } = window.jspdf || {};
 
-  // Tableau pour stocker tous les clients
   let clients = [];
 
   function ajouterClient() {
@@ -260,7 +265,7 @@
     const est_carte_mobilite = document.getElementById('carte_mobilite').checked;
     const est_aah = document.getElementById('aah').checked;
 
-    // Calcul des droits
+    // Calcul droits
     let montant_base_annuel = 500;
     let plafond_cpf = 5000;
 
@@ -301,7 +306,7 @@
     }
     droits_totaux = Math.round(droits_totaux * 100) / 100;
 
-    // On construit l'objet client
+    // Objet client
     const client = {
       'Statut': statut,
       'Années': annees,
@@ -323,10 +328,8 @@
       'Prospecteur': prospecteur
     };
 
-    // On l'ajoute au tableau
     clients.push(client);
 
-    // Affichage
     afficherTableComplete();
     afficherDernierResultat(droits_totaux);
     afficherHistorique();
@@ -375,36 +378,26 @@
     lastResult.textContent = `Dernier calcul : ${droitsTotaux} €`;
   }
 
-  /**
-   * Fonction pour exporter en PDF seulement
-   * les prospects ayant plus de 500 € de droits.
-   * Chaque prospect occupe 1 page.
-   * L'ordre est :
-   *   Prénom, Nom, Téléphone, Mail, N° Sécu, Prospecteur, Droits
-   */
   function exporterSup500PDF() {
     if (!jsPDF) {
       alert("jsPDF n'a pas été chargé correctement.");
       return;
     }
 
-    // On filtre les clients > 500€
     const superieurs = clients.filter(c => c['Droits Totaux'] > 500);
     if (superieurs.length === 0) {
       alert("Aucun client avec plus de 500 € de droits.");
       return;
     }
 
-    // On crée le document PDF
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
 
-    // Pour chaque client, on crée une page (sauf le premier)
     superieurs.forEach((c, index) => {
       if (index > 0) doc.addPage();
 
       doc.setFontSize(14);
 
-      let y = 60; // position verticale de départ
+      let y = 60; // position verticale
 
       doc.text(`Prénom : ${c['Prénom']}`, 40, y);
       y += 20;
@@ -421,7 +414,6 @@
       doc.text(`Nombre de droits : ${c['Droits Totaux']}`, 40, y);
     });
 
-    // Enregistrement du PDF
     doc.save("prospects_sup_500.pdf");
   }
 </script>
